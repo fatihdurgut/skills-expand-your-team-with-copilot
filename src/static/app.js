@@ -503,6 +503,144 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Function to generate share URL for an activity
+  function generateShareUrl(activityName) {
+    // Get the current page URL or generate a simple URL
+    const baseUrl = window.location.origin + window.location.pathname;
+    // Encode the activity name to use in a URL fragment
+    const encodedActivity = encodeURIComponent(activityName);
+    return `${baseUrl}#activity=${encodedActivity}`;
+  }
+
+  // Function to open share options
+  function openShareOptions(activityName, activityDescription) {
+    const shareUrl = generateShareUrl(activityName);
+    const shareText = `Check out this activity at Mergington High School: ${activityName} - ${activityDescription}`;
+    
+    // Create share modal if it doesn't exist
+    let shareModal = document.getElementById("share-modal");
+    if (!shareModal) {
+      shareModal = document.createElement("div");
+      shareModal.id = "share-modal";
+      shareModal.className = "modal hidden";
+      shareModal.innerHTML = `
+        <div class="modal-content share-modal-content">
+          <span class="close-share-modal">&times;</span>
+          <h3>Share Activity</h3>
+          <p id="share-activity-name"></p>
+          <div class="share-buttons">
+            <button class="share-btn twitter-share" title="Share on Twitter">
+              <span class="share-icon">🐦</span>
+              <span>Twitter</span>
+            </button>
+            <button class="share-btn facebook-share" title="Share on Facebook">
+              <span class="share-icon">📘</span>
+              <span>Facebook</span>
+            </button>
+            <button class="share-btn linkedin-share" title="Share on LinkedIn">
+              <span class="share-icon">💼</span>
+              <span>LinkedIn</span>
+            </button>
+            <button class="share-btn email-share" title="Share via Email">
+              <span class="share-icon">✉️</span>
+              <span>Email</span>
+            </button>
+            <button class="share-btn copy-link" title="Copy Link">
+              <span class="share-icon">🔗</span>
+              <span>Copy Link</span>
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(shareModal);
+
+      // Add event listeners for share buttons
+      const closeShareModal = shareModal.querySelector(".close-share-modal");
+      closeShareModal.addEventListener("click", () => {
+        shareModal.classList.remove("show");
+        setTimeout(() => {
+          shareModal.classList.add("hidden");
+        }, 300);
+      });
+
+      // Close when clicking outside
+      shareModal.addEventListener("click", (event) => {
+        if (event.target === shareModal) {
+          shareModal.classList.remove("show");
+          setTimeout(() => {
+            shareModal.classList.add("hidden");
+          }, 300);
+        }
+      });
+    }
+
+    // Update modal content
+    document.getElementById("share-activity-name").textContent = activityName;
+
+    // Get share buttons
+    const twitterBtn = shareModal.querySelector(".twitter-share");
+    const facebookBtn = shareModal.querySelector(".facebook-share");
+    const linkedinBtn = shareModal.querySelector(".linkedin-share");
+    const emailBtn = shareModal.querySelector(".email-share");
+    const copyLinkBtn = shareModal.querySelector(".copy-link");
+
+    // Remove old event listeners by cloning
+    const newTwitterBtn = twitterBtn.cloneNode(true);
+    const newFacebookBtn = facebookBtn.cloneNode(true);
+    const newLinkedinBtn = linkedinBtn.cloneNode(true);
+    const newEmailBtn = emailBtn.cloneNode(true);
+    const newCopyLinkBtn = copyLinkBtn.cloneNode(true);
+
+    twitterBtn.parentNode.replaceChild(newTwitterBtn, twitterBtn);
+    facebookBtn.parentNode.replaceChild(newFacebookBtn, facebookBtn);
+    linkedinBtn.parentNode.replaceChild(newLinkedinBtn, linkedinBtn);
+    emailBtn.parentNode.replaceChild(newEmailBtn, emailBtn);
+    copyLinkBtn.parentNode.replaceChild(newCopyLinkBtn, copyLinkBtn);
+
+    // Add new event listeners
+    newTwitterBtn.addEventListener("click", () => {
+      const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+      window.open(twitterUrl, "_blank", "width=600,height=400");
+    });
+
+    newFacebookBtn.addEventListener("click", () => {
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+      window.open(facebookUrl, "_blank", "width=600,height=400");
+    });
+
+    newLinkedinBtn.addEventListener("click", () => {
+      const linkedinUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+      window.open(linkedinUrl, "_blank", "width=600,height=400");
+    });
+
+    newEmailBtn.addEventListener("click", () => {
+      const emailSubject = `Check out this activity: ${activityName}`;
+      const emailBody = `${shareText}\n\n${shareUrl}`;
+      window.location.href = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
+    });
+
+    newCopyLinkBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showMessage("Link copied to clipboard!", "success");
+        // Close the share modal after copying
+        shareModal.classList.remove("show");
+        setTimeout(() => {
+          shareModal.classList.add("hidden");
+        }, 300);
+      } catch (error) {
+        console.error("Failed to copy link:", error);
+        showMessage("Failed to copy link. Please try again.", "error");
+      }
+    });
+
+    // Show the modal
+    shareModal.classList.remove("hidden");
+    setTimeout(() => {
+      shareModal.classList.add("show");
+    }, 10);
+  }
+
   // Function to render a single activity card
   function renderActivityCard(name, details) {
     const activityCard = document.createElement("div");
@@ -584,6 +722,10 @@ document.addEventListener("DOMContentLoaded", () => {
         </ul>
       </div>
       <div class="activity-card-actions">
+        <button class="share-activity-button" data-activity="${name}" title="Share this activity">
+          <span class="share-icon">📤</span>
+          Share
+        </button>
         ${
           currentUser
             ? `
@@ -606,6 +748,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const deleteButtons = activityCard.querySelectorAll(".delete-participant");
     deleteButtons.forEach((button) => {
       button.addEventListener("click", handleUnregister);
+    });
+
+    // Add click handler for share button
+    const shareButton = activityCard.querySelector(".share-activity-button");
+    shareButton.addEventListener("click", () => {
+      openShareOptions(name, details.description);
     });
 
     // Add click handler for register button (only when authenticated)
